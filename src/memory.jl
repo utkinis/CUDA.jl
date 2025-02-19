@@ -510,7 +510,7 @@ mutable struct Managed{M}
   captured::Bool
 
   # guards weak dependencies
-  mutex::Threads.ReentrantLock
+  mutex::ReentrantLock
 
   # list of ranges currently being accessed by other tasks
   deps::Dict{Ref{WeakManaged},Vector}
