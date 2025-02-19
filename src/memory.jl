@@ -599,6 +599,52 @@ function Base.convert(::Type{Ptr{T}}, managed::Managed{M}) where {T,M}
   return ptr
 end
 
+## weak managed memory
+# useful in cases when there are multiple references to the same memory
+mutable struct WeakManaged{P}
+  parent::Ref{P}
+  stream::CuStream
+  captured::Bool
+  dirty::Bool
+end
+
+function synchronize(weak_managed::WeakManaged)
+  synchronize(weak_managed.stream)
+  weak_managed.dirty = false
+end
+function maybe_synchronize(weak_managed::WeakManaged)
+  if weak_managed.dirty || weak_managed.captured
+    synchronize(weak_managed)
+  end
+end
+
+function Base.convert(::Type{CuPtr{T}}, weak::WeakManaged) where T
+  ptr = convert(CuPtr{T}, managed.mem)
+  if ptr == CU_NULL
+    return ptr
+  end
+
+  state = active_state()
+  if is_capturing(state.stream)
+    weak_managed.captured = true
+  end
+
+  # accessing memory on another stream: ensure the data is ready and take ownership
+  if weak_managed.stream != state.stream
+    maybe_synchronize(weak_managed)
+    weak_managed.stream = state.stream
+  end
+
+  # sycnhronise parent stream without taking ownership
+  if managed.parent[].stream != state.stream
+    maybe_synchronize(managed.parent[])
+  end
+
+  # TODO: add weak reference to the parent so that it can synchronise the child
+  # push!(managed.parent[].weak_refs, Ref(weak_managed))
+
+  return ptr
+end
 
 ## public interface
 
