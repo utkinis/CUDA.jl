@@ -21,11 +21,11 @@ Base.copy(alloc_stats::AllocStats) =
     alloc_stats.total_time)
 
 Base.:(-)(a::AllocStats, b::AllocStats) = (;
-  alloc_count = a.alloc_count - b.alloc_count,
-  alloc_bytes = a.alloc_bytes - b.alloc_bytes,
-  free_count  = a.free_count  - b.free_count,
-  free_bytes  = a.free_bytes  - b.free_bytes,
-  total_time  = a.total_time  - b.total_time)
+  alloc_count=a.alloc_count - b.alloc_count,
+  alloc_bytes=a.alloc_bytes - b.alloc_bytes,
+  free_count=a.free_count - b.free_count,
+  free_bytes=a.free_bytes - b.free_bytes,
+  total_time=a.total_time - b.total_time)
 
 const alloc_stats = AllocStats()
 
@@ -109,7 +109,7 @@ function maybe_collect(will_block::Bool=false)
   ## we tolerate 5% GC time
   max_gc_rate = 0.05
   ## if we freed a lot last time, bump that up
-  if stats.last_freed > 0.1*stats.size
+  if stats.last_freed > 0.1 * stats.size
     max_gc_rate *= 2
   end
   ## if we're about to block, we can be more aggressive
@@ -135,7 +135,7 @@ function maybe_collect(will_block::Bool=false)
   memory_freed = pre_gc_live - post_gc_live
   Base.@atomic stats.last_freed = memory_freed
   ## GC times can vary, so smooth them out
-  Base.@atomic stats.last_gc_time = 0.75*stats.last_gc_time + 0.25*gc_time
+  Base.@atomic stats.last_gc_time = 0.75 * stats.last_gc_time + 0.25 * gc_time
 
   return
 end
@@ -186,7 +186,7 @@ function memory_limits()
     end
 
     (; soft, hard)
-  end::NamedTuple{(:soft, :hard), Tuple{UInt,UInt}}
+  end::NamedTuple{(:soft, :hard),Tuple{UInt,UInt}}
 end
 
 function memory_limit_exceeded(bytes::Integer)
@@ -217,7 +217,7 @@ end
 #       this is a common pattern that could be applied to many more functions.
 function stream_ordered(dev::CuDevice)
   devidx = deviceid(dev) + 1
-  @memoize devidx::Int maxlen=ndevices() begin
+  @memoize devidx::Int maxlen = ndevices() begin
     CUDA.driver_version() >= v"11.3" && memory_pools_supported(dev) &&
       get(ENV, "JULIA_CUDA_MEMORY_POOL", "cuda") == "cuda"
   end::Bool
@@ -340,7 +340,7 @@ function pool_status(io::IO=stdout, info::MemoryInfo=MemoryInfo())
   used_bytes = info.total_bytes - info.free_bytes
   used_ratio = used_bytes / info.total_bytes
   @printf(io, "Effective GPU memory usage: %.2f%% (%s/%s)\n",
-              100*used_ratio, Base.format_bytes(used_bytes),
+    100 * used_ratio, Base.format_bytes(used_bytes),
     Base.format_bytes(info.total_bytes))
 
   if info.pool_reserved_bytes === nothing
@@ -577,7 +577,7 @@ function Base.convert(::Type{CuPtr{T}}, managed::Managed{M}) where {T,M}
   end
 
   # synchronize all dependent tasks
-  lock(managed.lock) do
+  @lock managed.mutex begin
     for weak in keys(managed.deps)
       maybe_synchronize(weak[])
     end
@@ -642,7 +642,7 @@ function maybe_synchronize(weak_managed::WeakManaged)
   end
 end
 
-function Base.convert(::Type{CuPtr{T}}, weak::WeakManaged) where T
+function Base.convert(::Type{CuPtr{T}}, weak::WeakManaged) where {T}
   ptr = convert(CuPtr{T}, managed.mem)
   if ptr == CU_NULL
     return ptr
@@ -664,7 +664,7 @@ function Base.convert(::Type{CuPtr{T}}, weak::WeakManaged) where T
     maybe_synchronize(managed.parent[])
   end
 
-  lock(managed.parent[].lock) do
+  @lock managed.parent[].mutex begin
     # TODO:
     # check overlapping ranges and synchronize
     # add this range to the list of dependencies
@@ -863,24 +863,24 @@ macro time(ex)
       if bytes != 0 || allocs != 0
         allocs, ma = Base.prettyprint_getunits(allocs, length(Base._cnt_units), Int64(1000))
         if ma == 1
-                  Printf.@printf(" (%d%s %s allocation%s: ", allocs, Base._cnt_units[ma], typ, allocs==1 ? "" : "s")
+          Printf.@printf(" (%d%s %s allocation%s: ", allocs, Base._cnt_units[ma], typ, allocs == 1 ? "" : "s")
         else
           Printf.@printf(" (%.2f%s %s allocations: ", allocs, Base._cnt_units[ma], typ)
         end
         print(Base.format_bytes(bytes))
         if gctime > 0
-                  Printf.@printf(", %.2f%% gc time", 100*gctime/cpu_time)
+          Printf.@printf(", %.2f%% gc time", 100 * gctime / cpu_time)
         end
         if memtime > 0
-                  Printf.@printf(", %.2f%% memmgmt time", 100*memtime/cpu_time)
+          Printf.@printf(", %.2f%% memmgmt time", 100 * memtime / cpu_time)
         end
         print(")")
       else
         if gctime > 0
-                  Printf.@printf(", %.2f%% %s gc time", 100*gctime/cpu_time, typ)
+          Printf.@printf(", %.2f%% %s gc time", 100 * gctime / cpu_time, typ)
         end
         if memtime > 0
-                  Printf.@printf(", %.2f%% %s memmgmt time", 100*memtime/cpu_time, typ)
+          Printf.@printf(", %.2f%% %s memmgmt time", 100 * memtime / cpu_time, typ)
         end
       end
     end
