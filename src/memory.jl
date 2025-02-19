@@ -17,15 +17,15 @@ AllocStats() = AllocStats(0, 0, 0, 0, 0.0)
 
 Base.copy(alloc_stats::AllocStats) =
   AllocStats(alloc_stats.alloc_count, alloc_stats.alloc_bytes,
-             alloc_stats.free_count, alloc_stats.free_bytes,
-             alloc_stats.total_time)
+    alloc_stats.free_count, alloc_stats.free_bytes,
+    alloc_stats.total_time)
 
 Base.:(-)(a::AllocStats, b::AllocStats) = (;
-    alloc_count = a.alloc_count - b.alloc_count,
-    alloc_bytes = a.alloc_bytes - b.alloc_bytes,
-    free_count  = a.free_count  - b.free_count,
-    free_bytes  = a.free_bytes  - b.free_bytes,
-    total_time  = a.total_time  - b.total_time)
+  alloc_count = a.alloc_count - b.alloc_count,
+  alloc_bytes = a.alloc_bytes - b.alloc_bytes,
+  free_count  = a.free_count  - b.free_count,
+  free_bytes  = a.free_bytes  - b.free_bytes,
+  total_time  = a.total_time  - b.total_time)
 
 const alloc_stats = AllocStats()
 
@@ -56,7 +56,7 @@ end
 const _memory_stats = PerDevice{MemoryStats}()
 function memory_stats(dev::CuDevice=device())
   get!(_memory_stats, dev) do
-      MemoryStats()
+    MemoryStats()
   end
 end
 
@@ -145,30 +145,30 @@ end
 
 # parse a memory limit, e.g. "1.5GiB" or "50%, to the number of bytes
 function parse_limit(str::AbstractString)
-    if endswith(str, "%")
-        str = str[1:end-1]
-        return round(UInt, parse(Float64, str) / 100 * total_memory())
-    end
+  if endswith(str, "%")
+    str = str[1:end-1]
+    return round(UInt, parse(Float64, str) / 100 * total_memory())
+  end
 
-    si_units = [("k", "kB", "K", "KB"), ("M", "MB"), ("G", "GB")]
-    for (i, units) in enumerate(si_units), unit in units
-        if endswith(str, unit)
-            multiplier = 1000^i
-            str = str[1:end-length(unit)]
-            return round(UInt, parse(Float64, str) * multiplier)
-        end
+  si_units = [("k", "kB", "K", "KB"), ("M", "MB"), ("G", "GB")]
+  for (i, units) in enumerate(si_units), unit in units
+    if endswith(str, unit)
+      multiplier = 1000^i
+      str = str[1:end-length(unit)]
+      return round(UInt, parse(Float64, str) * multiplier)
     end
+  end
 
-    iec_units = ["KiB", "MiB", "GiB"]
-    for (i, unit) in enumerate(iec_units)
-        if endswith(str, unit)
-            multiplier = 1024^i
-            str = str[1:end-length(unit)]
-            return round(UInt, parse(Float64, str) * multiplier)
-        end
+  iec_units = ["KiB", "MiB", "GiB"]
+  for (i, unit) in enumerate(iec_units)
+    if endswith(str, unit)
+      multiplier = 1024^i
+      str = str[1:end-length(unit)]
+      return round(UInt, parse(Float64, str) * multiplier)
     end
+  end
 
-    return parse(UInt, str)
+  return parse(UInt, str)
 end
 
 function memory_limits()
@@ -219,34 +219,34 @@ function stream_ordered(dev::CuDevice)
   devidx = deviceid(dev) + 1
   @memoize devidx::Int maxlen=ndevices() begin
     CUDA.driver_version() >= v"11.3" && memory_pools_supported(dev) &&
-    get(ENV, "JULIA_CUDA_MEMORY_POOL", "cuda") == "cuda"
+      get(ENV, "JULIA_CUDA_MEMORY_POOL", "cuda") == "cuda"
   end::Bool
 end
 
 const _memory_pools = PerDevice{CuMemoryPool}()
 function pool_create(dev::CuDevice)
   get!(_memory_pools, dev) do
-      limits = memory_limits()
+    limits = memory_limits()
 
-      # create a custom memory pool and assign it to the device
-      # so that other libraries and applications will use it.
-      pool = if limits.hard > 0 && CUDA.driver_version() >= v"12.2"
-        CuMemoryPool(dev; maxSize=limits.hard)
-      else
-        CuMemoryPool(dev)
-      end
-      memory_pool!(dev, pool)
+    # create a custom memory pool and assign it to the device
+    # so that other libraries and applications will use it.
+    pool = if limits.hard > 0 && CUDA.driver_version() >= v"12.2"
+      CuMemoryPool(dev; maxSize=limits.hard)
+    else
+      CuMemoryPool(dev)
+    end
+    memory_pool!(dev, pool)
 
-      # allow the pool to use up all memory of this device
-      attribute!(pool, MEMPOOL_ATTR_RELEASE_THRESHOLD,
-                 limits.soft == 0 ? typemax(UInt64) : limits.soft)
+    # allow the pool to use up all memory of this device
+    attribute!(pool, MEMPOOL_ATTR_RELEASE_THRESHOLD,
+      limits.soft == 0 ? typemax(UInt64) : limits.soft)
 
-      # launch a task to periodically trim the pool
-      if isinteractive() && !isassigned(__pool_cleanup)
-        __pool_cleanup[] = errormonitor(Threads.@spawn pool_cleanup())
-      end
+    # launch a task to periodically trim the pool
+    if isinteractive() && !isassigned(__pool_cleanup)
+      __pool_cleanup[] = errormonitor(Threads.@spawn pool_cleanup())
+    end
 
-      pool
+    pool
   end
 end
 
@@ -341,14 +341,14 @@ function pool_status(io::IO=stdout, info::MemoryInfo=MemoryInfo())
   used_ratio = used_bytes / info.total_bytes
   @printf(io, "Effective GPU memory usage: %.2f%% (%s/%s)\n",
               100*used_ratio, Base.format_bytes(used_bytes),
-              Base.format_bytes(info.total_bytes))
+    Base.format_bytes(info.total_bytes))
 
   if info.pool_reserved_bytes === nothing
     @printf(io, "No memory pool is in use.")
   else
     @printf(io, "Memory pool usage: %s (%s reserved)\n",
-                Base.format_bytes(info.pool_used_bytes),
-                Base.format_bytes(info.pool_reserved_bytes))
+      Base.format_bytes(info.pool_used_bytes),
+      Base.format_bytes(info.pool_reserved_bytes))
 
   end
 
@@ -404,14 +404,14 @@ end
 const in_oom_ctor = Ref{Bool}(false)
 
 function Base.showerror(io::IO, err::OutOfGPUMemoryError)
-    print(io, "Out of GPU memory")
-    if err.sz > 0
-      print(io, " trying to allocate $(Base.format_bytes(err.sz))")
-    end
-    if err.info !== nothing
-      println(io)
-      pool_status(io, err.info)
-    end
+  print(io, "Out of GPU memory")
+  if err.sz > 0
+    print(io, " trying to allocate $(Base.format_bytes(err.sz))")
+  end
+  if err.info !== nothing
+    println(io)
+    pool_status(io, err.info)
+  end
 end
 
 const reclaim_hooks = Any[]
@@ -500,7 +500,7 @@ end
 mutable struct Managed{M}
   const mem::M
 
-  # which stream is currently using the memory.
+  # which stream is currently using the memory
   stream::CuStream
 
   # whether there are outstanding operations that haven't been synchronized
@@ -508,6 +508,12 @@ mutable struct Managed{M}
 
   # whether the memory has been captured in a way that would make the dirty bit unreliable
   captured::Bool
+
+  # guards weak dependencies
+  mutex::Threads.ReentrantLock
+
+  # list of ranges currently being accessed by other tasks
+  deps::Dict{Ref{WeakManaged},Vector}
 
   function Managed(mem::AbstractMemory; stream=CUDA.stream(), dirty=true, captured=false)
     # NOTE: memory starts as dirty, because stream-ordered allocations are only
@@ -549,12 +555,12 @@ function Base.convert(::Type{CuPtr{T}}, managed::Managed{M}) where {T,M}
 
     # enable peer-to-peer access
     if maybe_enable_peer_access(state.device, source_device) != 1
-        throw(ArgumentError(
-            """cannot take the GPU address of inaccessible device memory.
+      throw(ArgumentError(
+        """cannot take the GPU address of inaccessible device memory.
 
-               You are trying to use memory from GPU $(deviceid(source_device)) on GPU $(deviceid(state.device)).
-               P2P access between these devices is not possible; either switch to GPU $(deviceid(source_device))
-               by calling `CUDA.device!($(deviceid(source_device)))`, or copy the data to an array allocated on device $(deviceid(state.device))."""))
+           You are trying to use memory from GPU $(deviceid(source_device)) on GPU $(deviceid(state.device)).
+           P2P access between these devices is not possible; either switch to GPU $(deviceid(source_device))
+           by calling `CUDA.device!($(deviceid(source_device)))`, or copy the data to an array allocated on device $(deviceid(state.device))."""))
     end
 
     # set pool visibility
@@ -568,6 +574,14 @@ function Base.convert(::Type{CuPtr{T}}, managed::Managed{M}) where {T,M}
   if managed.stream != state.stream
     maybe_synchronize(managed)
     managed.stream = state.stream
+  end
+
+  # synchronise all dependent tasks
+  lock(managed.lock) do
+    for weak in keys(managed.deps)
+      maybe_synchronize(weak[])
+    end
+    empty!(managed.deps)
   end
 
   managed.dirty = true
@@ -584,14 +598,14 @@ function Base.convert(::Type{Ptr{T}}, managed::Managed{M}) where {T,M}
   # accessing memory on the CPU: only allowed for host or unified allocations
   if M == DeviceMemory
     throw(ArgumentError(
-        """cannot take the CPU address of GPU memory.
+      """cannot take the CPU address of GPU memory.
 
-           You are probably falling back to or otherwise calling CPU functionality
-           with GPU array inputs. This is not supported by regular device memory;
-           ensure this operation is supported by CUDA.jl, and if it isn't, try to
-           avoid it or rephrase it in terms of supported operations. Alternatively,
-           you can consider using GPU arrays backed by unified memory by
-           allocating using `cu(...; unified=true)`."""))
+         You are probably falling back to or otherwise calling CPU functionality
+         with GPU array inputs. This is not supported by regular device memory;
+         ensure this operation is supported by CUDA.jl, and if it isn't, try to
+         avoid it or rephrase it in terms of supported operations. Alternatively,
+         you can consider using GPU arrays backed by unified memory by
+         allocating using `cu(...; unified=true)`."""))
   end
 
   # make sure any work on the memory has finished.
@@ -601,10 +615,20 @@ end
 
 ## weak managed memory
 # useful in cases when there are multiple references to the same memory
-mutable struct WeakManaged{P}
+mutable struct WeakManaged{P,R}
+  # parent managed memory object
   parent::Ref{P}
+
+  # n-D range of memory that is being accessed
+  ndrange::R
+
+  # which stream is currently using the memory
   stream::CuStream
+
+  # whether there are outstanding operations that haven't been synchronized
   captured::Bool
+
+  # whether the memory has been captured in a way that would make the dirty bit unreliable
   dirty::Bool
 end
 
@@ -635,14 +659,18 @@ function Base.convert(::Type{CuPtr{T}}, weak::WeakManaged) where T
     weak_managed.stream = state.stream
   end
 
-  # sycnhronise parent stream without taking ownership
+  # sycnhronize parent stream without taking ownership
   if managed.parent[].stream != state.stream
     maybe_synchronize(managed.parent[])
   end
 
-  # TODO: add weak reference to the parent so that it can synchronise the child
-  # push!(managed.parent[].weak_refs, Ref(weak_managed))
+  lock(managed.parent[].lock) do
+    # TODO:
+    # check overlapping ranges and synchronize
+    # add this range to the list of dependencies
+  end
 
+  weak_managed.dirty = true
   return ptr
 end
 
@@ -673,43 +701,43 @@ cannot be satisfied.
   return Managed(mem)
 end
 @inline function _pool_alloc(::Type{DeviceMemory}, sz)
-    state = active_state()
+  state = active_state()
 
-    mem = if stream_ordered(state.device)
-      pool_mark!(state.device, true)
-      pool = pool_create(state.device)
+  mem = if stream_ordered(state.device)
+    pool_mark!(state.device, true)
+    pool = pool_create(state.device)
 
-      retry_reclaim(isnothing) do
-        memory_limit_exceeded(sz) && return nothing
+    retry_reclaim(isnothing) do
+      memory_limit_exceeded(sz) && return nothing
 
-        # try the actual allocation
-        try
-          alloc(DeviceMemory, sz; async=true, state.stream, pool)
-        catch err
-          isa(err, OutOfGPUMemoryError) || rethrow()
-          return nothing
-        end
-      end
-    else
-      retry_reclaim(isnothing) do
-        memory_limit_exceeded(sz) && return nothing
-
-        # try the actual allocation
-        try
-          alloc(DeviceMemory, sz; async=false)
-        catch err
-          isa(err, OutOfGPUMemoryError) || rethrow()
-          return nothing
-        end
+      # try the actual allocation
+      try
+        alloc(DeviceMemory, sz; async=true, state.stream, pool)
+      catch err
+        isa(err, OutOfGPUMemoryError) || rethrow()
+        return nothing
       end
     end
-    # NOTE: the `retry_reclaim` body is duplicated to work around
-    #       closure capture issues with the `pool` variable
-    mem === nothing && throw(OutOfGPUMemoryError(sz))
+  else
+    retry_reclaim(isnothing) do
+      memory_limit_exceeded(sz) && return nothing
 
-    account!(memory_stats(state.device), sz)
+      # try the actual allocation
+      try
+        alloc(DeviceMemory, sz; async=false)
+      catch err
+        isa(err, OutOfGPUMemoryError) || rethrow()
+        return nothing
+      end
+    end
+  end
+  # NOTE: the `retry_reclaim` body is duplicated to work around
+  #       closure capture issues with the `pool` variable
+  mem === nothing && throw(OutOfGPUMemoryError(sz))
 
-    mem
+  account!(memory_stats(state.device), sz)
+
+  mem
 end
 @inline function _pool_alloc(::Type{UnifiedMemory}, sz)
   alloc(UnifiedMemory, sz)
@@ -748,23 +776,23 @@ against the stream that last used the memory.
   return
 end
 @inline function _pool_free(mem::DeviceMemory, stream::CuStream)
-    if mem.async
-      # stream-ordered allocations are not tied to a context. we always need to free them,
-      # and if the owning context (or stream) was destroyed, use a new (or default) one.
-      if isvalid(mem.ctx) && isvalid(stream)
-        context!(mem.ctx) do
-          free(mem; stream)
-        end
-      else
-        free(mem; stream=default_stream())
+  if mem.async
+    # stream-ordered allocations are not tied to a context. we always need to free them,
+    # and if the owning context (or stream) was destroyed, use a new (or default) one.
+    if isvalid(mem.ctx) && isvalid(stream)
+      context!(mem.ctx) do
+        free(mem; stream)
       end
     else
-      # regular allocations are tied to a context, so ignore if the context was destroyed
-      context!(mem.ctx; skip_destroyed=true) do
-        free(mem)
-      end
+      free(mem; stream=default_stream())
     end
-    account!(memory_stats(mem.dev), -sizeof(mem))
+  else
+    # regular allocations are tied to a context, so ignore if the context was destroyed
+    context!(mem.ctx; skip_destroyed=true) do
+      free(mem)
+    end
+  end
+  account!(memory_stats(mem.dev), -sizeof(mem))
 end
 @inline _pool_free(mem::UnifiedMemory, stream::CuStream) = free(mem)
 @inline _pool_free(mem::HostMemory, stream::CuStream) = free(mem)
@@ -782,9 +810,9 @@ function reclaim(sz::Int=typemax(Int))
     hook()
   end
   if stream_ordered(dev)
-      device_synchronize()
-      synchronize(context())
-      trim(pool_create(dev))
+    device_synchronize()
+    synchronize(context())
+    trim(pool_create(dev))
   else
     0
   end
@@ -800,17 +828,17 @@ A macro to evaluate an expression, discarding the resulting value, instead retur
 total number of bytes allocated during evaluation of the expression.
 """
 macro allocated(ex)
-    quote
-        let
-            local f
-            function f()
-                b0 = alloc_stats.alloc_bytes
-                $(esc(ex))
-                alloc_stats.alloc_bytes - b0
-            end
-            f()
-        end
+  quote
+    let
+      local f
+      function f()
+        b0 = alloc_stats.alloc_bytes
+        $(esc(ex))
+        alloc_stats.alloc_bytes - b0
+      end
+      f()
     end
+  end
 end
 
 """
@@ -820,75 +848,75 @@ Run expression `ex` and report on execution time and GPU/CPU memory behavior. Th
 synchronized right before and after executing `ex` to exclude any external effects.
 """
 macro time(ex)
-    quote
-        local val, cpu_time,
-            cpu_alloc_size, cpu_gc_time, cpu_mem_stats,
-            gpu_alloc_size, gpu_mem_time, gpu_mem_stats = @timed $(esc(ex))
+  quote
+    local val, cpu_time,
+    cpu_alloc_size, cpu_gc_time, cpu_mem_stats,
+    gpu_alloc_size, gpu_mem_time, gpu_mem_stats = @timed $(esc(ex))
 
-        local cpu_alloc_count = Base.gc_alloc_count(cpu_mem_stats)
-        local gpu_alloc_count = gpu_mem_stats.alloc_count
+    local cpu_alloc_count = Base.gc_alloc_count(cpu_mem_stats)
+    local gpu_alloc_count = gpu_mem_stats.alloc_count
 
-        Printf.@printf("%10.6f seconds", cpu_time)
-        for (typ, gctime, memtime, bytes, allocs) in
-            (("CPU", cpu_gc_time, 0, cpu_alloc_size, cpu_alloc_count),
-             ("GPU", 0, gpu_mem_time, gpu_alloc_size, gpu_alloc_count))
-          if bytes != 0 || allocs != 0
-              allocs, ma = Base.prettyprint_getunits(allocs, length(Base._cnt_units), Int64(1000))
-              if ma == 1
+    Printf.@printf("%10.6f seconds", cpu_time)
+    for (typ, gctime, memtime, bytes, allocs) in
+        (("CPU", cpu_gc_time, 0, cpu_alloc_size, cpu_alloc_count),
+      ("GPU", 0, gpu_mem_time, gpu_alloc_size, gpu_alloc_count))
+      if bytes != 0 || allocs != 0
+        allocs, ma = Base.prettyprint_getunits(allocs, length(Base._cnt_units), Int64(1000))
+        if ma == 1
                   Printf.@printf(" (%d%s %s allocation%s: ", allocs, Base._cnt_units[ma], typ, allocs==1 ? "" : "s")
-              else
-                  Printf.@printf(" (%.2f%s %s allocations: ", allocs, Base._cnt_units[ma], typ)
-              end
-              print(Base.format_bytes(bytes))
-              if gctime > 0
-                  Printf.@printf(", %.2f%% gc time", 100*gctime/cpu_time)
-              end
-              if memtime > 0
-                  Printf.@printf(", %.2f%% memmgmt time", 100*memtime/cpu_time)
-              end
-              print(")")
-          else
-              if gctime > 0
-                  Printf.@printf(", %.2f%% %s gc time", 100*gctime/cpu_time, typ)
-              end
-              if memtime > 0
-                  Printf.@printf(", %.2f%% %s memmgmt time", 100*memtime/cpu_time, typ)
-              end
-          end
+        else
+          Printf.@printf(" (%.2f%s %s allocations: ", allocs, Base._cnt_units[ma], typ)
         end
-        println()
-
-        val
+        print(Base.format_bytes(bytes))
+        if gctime > 0
+                  Printf.@printf(", %.2f%% gc time", 100*gctime/cpu_time)
+        end
+        if memtime > 0
+                  Printf.@printf(", %.2f%% memmgmt time", 100*memtime/cpu_time)
+        end
+        print(")")
+      else
+        if gctime > 0
+                  Printf.@printf(", %.2f%% %s gc time", 100*gctime/cpu_time, typ)
+        end
+        if memtime > 0
+                  Printf.@printf(", %.2f%% %s memmgmt time", 100*memtime/cpu_time, typ)
+        end
+      end
     end
+    println()
+
+    val
+  end
 end
 
 macro timed(ex)
-    quote
-        Base.Experimental.@force_compile
+  quote
+    Base.Experimental.@force_compile
 
-        # coars-graned synchronization to exclude effects from previously-executed code
-        device_synchronize()
+    # coars-graned synchronization to exclude effects from previously-executed code
+    device_synchronize()
 
-        local gpu_mem_stats0 = copy(alloc_stats)
-        local cpu_mem_stats0 = Base.gc_num()
-        local cpu_time0 = time_ns()
+    local gpu_mem_stats0 = copy(alloc_stats)
+    local cpu_mem_stats0 = Base.gc_num()
+    local cpu_time0 = time_ns()
 
-        # fine-grained synchronization of the code under analysis
-        local val = @sync $(esc(ex))
+    # fine-grained synchronization of the code under analysis
+    local val = @sync $(esc(ex))
 
-        local cpu_time1 = time_ns()
-        local cpu_mem_stats1 = Base.gc_num()
-        local gpu_mem_stats1 = copy(alloc_stats)
+    local cpu_time1 = time_ns()
+    local cpu_mem_stats1 = Base.gc_num()
+    local gpu_mem_stats1 = copy(alloc_stats)
 
-        local cpu_time = (cpu_time1 - cpu_time0) / 1e9
+    local cpu_time = (cpu_time1 - cpu_time0) / 1e9
 
-        local cpu_mem_stats = Base.GC_Diff(cpu_mem_stats1, cpu_mem_stats0)
-        local gpu_mem_stats = gpu_mem_stats1 - gpu_mem_stats0
+    local cpu_mem_stats = Base.GC_Diff(cpu_mem_stats1, cpu_mem_stats0)
+    local gpu_mem_stats = gpu_mem_stats1 - gpu_mem_stats0
 
-        (value=val, time=cpu_time,
-         cpu_bytes=cpu_mem_stats.allocd, cpu_gctime=cpu_mem_stats.total_time / 1e9, cpu_gcstats=cpu_mem_stats,
-         gpu_bytes=gpu_mem_stats.alloc_bytes, gpu_memtime=gpu_mem_stats.total_time, gpu_memstats=gpu_mem_stats)
-    end
+    (value=val, time=cpu_time,
+      cpu_bytes=cpu_mem_stats.allocd, cpu_gctime=cpu_mem_stats.total_time / 1e9, cpu_gcstats=cpu_mem_stats,
+      gpu_bytes=gpu_mem_stats.alloc_bytes, gpu_memtime=gpu_mem_stats.total_time, gpu_memstats=gpu_mem_stats)
+  end
 end
 
 """
