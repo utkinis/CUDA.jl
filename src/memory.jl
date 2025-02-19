@@ -576,7 +576,7 @@ function Base.convert(::Type{CuPtr{T}}, managed::Managed{M}) where {T,M}
     managed.stream = state.stream
   end
 
-  # synchronise all dependent tasks
+  # synchronize all dependent tasks
   lock(managed.lock) do
     for weak in keys(managed.deps)
       maybe_synchronize(weak[])
