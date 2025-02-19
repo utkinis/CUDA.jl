@@ -504,10 +504,10 @@ mutable struct Managed{M}
   stream::CuStream
 
   # whether there are outstanding operations that haven't been synchronized
-  captured::Bool
-  
-  # whether the memory has been captured in a way that would make the dirty bit unreliable
   dirty::Bool
+
+  # whether the memory has been captured in a way that would make the dirty bit unreliable
+  captured::Bool
 
   # guards weak dependencies
   mutex::ReentrantLock
